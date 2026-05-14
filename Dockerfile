@@ -15,18 +15,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copia o arquivo de dependências e o README (necessário para o metadata do pacote)
-COPY pyproject.toml README.md ./
+# Copia todo o código do projeto para dentro do container primeiro
+# Isso é necessário porque o hatchling exige a pasta 'flight_analyst' para gerar os metadados
+COPY . .
 
 # Instala as dependências do Python
 RUN pip install --upgrade pip
-RUN pip install -e ".[all]"
+RUN pip install ".[all]"
 
 # O Playwright do Python ainda precisa baixar os binários específicos dessa versão
 RUN playwright install chromium
 
-# Copia o resto do código do projeto para dentro do container
-COPY . .
+
 
 # Expõe a porta que o Render vai ler
 EXPOSE 8000
