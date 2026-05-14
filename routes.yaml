@@ -1,0 +1,63 @@
+# =============================================================================
+# Flight Analyst — Configuração de Rotas
+# =============================================================================
+# Este arquivo define as rotas a serem monitoradas.
+# Adicione rotas via CLI: python -m flight_analyst.main add-route
+# ou edite este arquivo manualmente seguindo o schema abaixo.
+# =============================================================================
+
+# Schema de uma rota:
+#
+# routes:
+#   - id: identificador_unico          # snake_case, ex: gru_lhr_oct25
+#     origin: GRU                      # IATA 3 letras, maiúsculo
+#     destination: LHR                 # IATA 3 letras, maiúsculo
+#     travel_month: "2025-10"          # Mês alvo no formato YYYY-MM
+#     target_duration_days: 14         # Duração alvo da viagem em dias
+#     flexibility_days: 3              # +/- dias de flexibilidade
+#     max_stops: 1                     # 0=direto, 1=1 escala, 2=qualquer
+#     currency: BRL                    # BRL | USD | EUR | GBP
+#     poll_interval_minutes: 60        # Frequência de coleta normal
+#     aggressive_poll_minutes: 15      # Frequência quando score >= 70
+
+routes: []
+
+# Exemplo comentado:
+# routes:
+#   - id: gru_lhr_oct25
+#     origin: GRU
+#     destination: LHR
+#     travel_month: "2025-10"
+#     target_duration_days: 20
+#     flexibility_days: 3
+#     max_stops: 1
+#     currency: BRL
+#     poll_interval_minutes: 60
+#     aggressive_poll_minutes: 15
+
+analysis:
+  # Durações a comparar na matriz de duração
+  duration_compare: [7, 10, 14, 17, 20, 21, 25, 28]
+  # Antecedências a analisar para janela ideal de compra (em dias)
+  book_advance_range_days: [14, 21, 30, 45, 60, 90, 120]
+  # Habilitar comparativo ano a ano
+  yoy_comparison: true
+  # Habilitar decomposição sazonal
+  seasonality_decompose: true
+  # Mínimo de snapshots para iniciar análise
+  min_snapshots_for_analysis: 20
+
+alerts:
+  # Score mínimo para disparar alerta de oportunidade
+  opportunity_score_threshold: 70
+  # Alertar quando preço estiver abaixo do mínimo histórico
+  historical_low_alert: true
+  # Alertar quando preço estiver mais barato que o mesmo período do ano anterior
+  yoy_cheaper_alert: true
+  # Alertar quando entrar na janela ideal de compra
+  best_advance_window_alert: true
+  # Alertar quando preço cair X% desde o último snapshot
+  price_drop_pct: 5
+  # Alertar quando preço cair > 50% da média (Error Fare)
+  error_fare_alert: true
+  error_fare_threshold_pct: 50
