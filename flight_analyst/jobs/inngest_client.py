@@ -20,20 +20,24 @@ inngest_client = inngest.Inngest(
 @inngest_client.create_function(
     fn_id="poll-prices-cron",
     name="Monitoramento de Preços Automático",
-    trigger=inngest.CronTrigger(cron="0 * * * *"),  # Roda a cada hora
+    trigger=inngest.TriggerCron(cron="0 */6 * * *"),  # Roda a cada 6 horas
 )
-async def poll_prices_cron(ctx: inngest.Context, step: inngest.Step) -> dict[str, str]:
+async def poll_prices_cron(ctx: inngest.Context) -> dict[str, str]:
     """Rotina principal acionada pelo Inngest (Serverless)."""
     log.info("inngest_poll_prices_started", run_id=ctx.run_id)
-    await poll_prices_routine()
+    from flight_analyst.infra.db.supabase_client import db
+    if not db._backend:
+        await db.connect()
+        
+    await poll_prices_routine(db)
     return {"status": "success", "run_id": ctx.run_id}
 
 @inngest_client.create_function(
     fn_id="cleanup-old-data-cron",
     name="Limpeza de Histórico Antigo",
-    trigger=inngest.CronTrigger(cron="0 2 * * 0"),  # Roda todo domingo às 02:00
+    trigger=inngest.TriggerCron(cron="0 2 * * 0"),  # Roda todo domingo às 02:00
 )
-async def cleanup_old_data_cron(ctx: inngest.Context, step: inngest.Step) -> dict[str, str]:
+async def cleanup_old_data_cron(ctx: inngest.Context) -> dict[str, str]:
     """Rotina de limpeza de dados antigos acionada pelo Inngest."""
     log.info("inngest_cleanup_started", run_id=ctx.run_id)
     await cleanup_old_data_routine()

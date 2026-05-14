@@ -15,6 +15,7 @@ from flight_analyst.infra.scrapers.serpapi_scraper import SerpApiScraper
 from flight_analyst.application.monitor_service import MonitorService
 from flight_analyst.application.intelligence_service import IntelligenceService
 from flight_analyst.application.notification_service import NotificationService
+from flight_analyst.infra.scrapers.base import BaseScraper
 from flight_analyst.config import settings
 
 log = structlog.get_logger(__name__)
@@ -35,7 +36,7 @@ async def poll_prices_routine(db: DatabaseClient) -> None:
     alert_repo = AlertRepository(db)
     recommendation_repo = RecommendationRepository(db)
     
-    scrapers = [PlaywrightScraper()]
+    scrapers: list[BaseScraper] = [PlaywrightScraper()]
     if settings.has_serpapi:
         scrapers.append(SerpApiScraper(settings.serpapi_key))
         
@@ -88,7 +89,7 @@ async def poll_prices_routine(db: DatabaseClient) -> None:
                         alert_type=AlertType.ERROR_FARE if rec.is_error_fare else AlertType.PRICE_DROP,
                         opportunity_score=rec.opportunity_score,
                         current_price=rec.current_price,
-                        message=rec.recommendation_text,
+                        message=rec.recommendation_text or "Nova oportunidade de preço encontrada!",
                     )
                     
                     sent = await notifier.notify_opportunity(route, rec)

@@ -441,11 +441,8 @@ try:
     import inngest.fast_api
     from flight_analyst.jobs.inngest_client import inngest_client, poll_prices_cron, cleanup_old_data_cron
     
-    # Só servimos o Inngest se houver uma chave de assinatura ou se estivermos em desenvolvimento
-    if settings.inngest_signing_key or not settings.is_production:
-        inngest.fast_api.serve(app, inngest_client, [poll_prices_cron, cleanup_old_data_cron])
-    else:
-        log.warning("inngest_skipped", reason="INNGEST_SIGNING_KEY ausente em produção")
+    # Servimos o Inngest (o SDK cuida da validação de segurança se a chave estiver presente)
+    inngest.fast_api.serve(app, inngest_client, [poll_prices_cron, cleanup_old_data_cron])
 except ImportError:
     log.warning("inngest_skipped", reason="Pacote inngest não instalado")
 except Exception as e:
