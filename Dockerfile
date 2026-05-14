@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copia o arquivo de dependências
-COPY pyproject.toml ./
+# Copia o arquivo de dependências e o README (necessário para o metadata do pacote)
+COPY pyproject.toml README.md ./
 
 # Instala as dependências do Python
 RUN pip install --upgrade pip
