@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     app_env: AppEnv = AppEnv.DEVELOPMENT
     log_level: LogLevel = LogLevel.INFO
     api_port: int = 8000
+    api_base_url: str = Field(default="")  # URL da API (ex: https://api.onrender.com)
     routes_config_path: Path = Path("routes.yaml")
     sqlite_path: Path = Path("data/flight_analyst.db")
     app_api_key: str = Field(default="dev_secret_key")
@@ -102,6 +103,12 @@ class Settings(BaseSettings):
                 "Defina uma senha segura no .env ou nas variáveis de ambiente."
             )
         return v
+
+    @property
+    def effective_api_base_url(self) -> str:
+        if self.api_base_url:
+            return self.api_base_url.rstrip("/")
+        return f"http://localhost:{self.api_port}"
 
     @property
     def is_production(self) -> bool:

@@ -21,7 +21,7 @@ COPY . .
 
 # Instala as dependências do Python
 RUN pip install --upgrade pip
-RUN pip install ".[all]"
+RUN pip install .
 
 # O Playwright do Python ainda precisa baixar os binários específicos dessa versão
 RUN playwright install chromium

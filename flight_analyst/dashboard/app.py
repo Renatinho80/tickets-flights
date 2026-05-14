@@ -23,7 +23,7 @@ st.set_page_config(
 import requests
 from flight_analyst.config import settings
 
-API_BASE_URL = f"http://localhost:{settings.api_port}"
+API_BASE_URL = settings.effective_api_base_url
 HEADERS = {"X-API-Key": settings.app_api_key}
 
 @st.cache_data(ttl=300)
