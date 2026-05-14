@@ -7,7 +7,7 @@ name = "flight-analyst"
 version = "0.1.0"
 description = "Analista pessoal de passagens aéreas — inteligência de preços, sazonalidade e janela de compra"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 
 # Dependências mínimas — presentes em todas as fases
 dependencies = [
@@ -78,7 +78,7 @@ flight-analyst = "flight_analyst.main:main"
 
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py310"
 line-length = 100
 select = ["E", "W", "F", "I", "UP", "B", "C4", "PTH"]
 ignore = ["E501"]
@@ -88,7 +88,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.10"
 strict = true
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
