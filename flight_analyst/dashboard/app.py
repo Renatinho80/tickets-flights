@@ -54,6 +54,42 @@ def fetch_latest_recommendation(route_id: str):
     except Exception:
         return None
 
+@st.cache_data(ttl=300)
+def fetch_all_recommendations(routes: list) -> list:
+    """Busca recomendações de todas as rotas para o ranking."""
+    results = []
+    for route in routes:
+        rec = fetch_latest_recommendation(route["id"])
+        if rec:
+            results.append({
+                "Rota": route.get("label", f"{route['origin']}→{route['destination']}"),
+                "Preço Atual": rec.get("current_price"),
+                "Média 30d": rec.get("avg_price_30d"),
+                "Score": rec.get("opportunity_score", 0),
+                "Status": rec.get("recommendation_text", "")[:60] + "...",
+                "Error Fare": "🚨" if rec.get("is_error_fare") else "✅",
+            })
+    return sorted(results, key=lambda x: x["Score"], reverse=True)
+
+def best_weekday_analysis(snapshots: list) -> dict | None:
+    """Analisa snapshots para identificar o dia da semana com preços historicamente menores."""
+    if len(snapshots) < 7:
+        return None
+    try:
+        df = pd.DataFrame([{"price": float(s["price"]), "scraped_at": pd.to_datetime(s["scraped_at"])} for s in snapshots])
+        dias = {
+            0: "Segunda", 1: "Terça", 2: "Quarta", 
+            3: "Quinta", 4: "Sexta", 5: "Sábado", 6: "Domingo"
+        }
+        df["weekday"] = df["scraped_at"].apply(lambda x: x.weekday()).map(dias)
+        avg_by_day = df.groupby("weekday")["price"].mean().sort_values()
+        best_day = avg_by_day.index[0]
+        worst_day = avg_by_day.index[-1]
+        savings_pct = ((avg_by_day.iloc[-1] - avg_by_day.iloc[0]) / avg_by_day.iloc[-1]) * 100
+        return {"best_day": best_day, "worst_day": worst_day, "savings_pct": savings_pct, "by_day": avg_by_day.to_dict()}
+    except Exception:
+        return None
+
 def run_ask(question: str, route_id: str):
     try:
         response = requests.post(
@@ -385,6 +421,23 @@ def main():
     snapshots = fetch_snapshots(route["id"])
     recommendation = fetch_latest_recommendation(route["id"])
     
+    # ------------------------------------------------
+    # Ranking de Oportunidades (todas as rotas)
+    # ------------------------------------------------
+    all_routes = fetch_routes()
+    if len(all_routes) > 1:
+        with st.expander("🏆 Ranking de Oportunidades (Todas as Rotas)", expanded=False):
+            ranking = fetch_all_recommendations(all_routes)
+            if ranking:
+                rank_df = pd.DataFrame(ranking)
+                rank_df.index = range(1, len(rank_df) + 1)
+                st.dataframe(
+                    rank_df.style.background_gradient(subset=["Score"], cmap="RdYlGn", vmin=0, vmax=100),
+                    use_container_width=True
+                )
+            else:
+                st.info("Nenhuma recomendação disponível ainda. Colete preços primeiro.")
+    
     if not snapshots:
         st.info("Nenhum preço coletado para esta rota ainda.")
         return
@@ -432,17 +485,47 @@ def main():
         } for s in snapshots])
         
         fig = px.line(
-            df, x="Data", y="Preço", 
+            df, x="Data", y="Preço",
             title="Evolução de Preços",
             markers=True,
             hover_data=["Companhia"]
         )
+        # Linhas de referência (Feature 2)
+        if recommendation:
+            if avg_30d := recommendation.get("avg_price_30d"):
+                fig.add_hline(
+                    y=float(avg_30d), line_dash="dash", line_color="orange",
+                    annotation_text=f"Média 30d: {route['currency']} {float(avg_30d):,.0f}",
+                    annotation_position="bottom right"
+                )
+            if hist_avg := recommendation.get("avg_price_historical"):
+                fig.add_hline(
+                    y=float(hist_avg), line_dash="dot", line_color="gray",
+                    annotation_text=f"Média Histórica: {route['currency']} {float(hist_avg):,.0f}",
+                    annotation_position="top right"
+                )
         fig.update_layout(
             xaxis_title="Data da Coleta",
             yaxis_title=f"Preço ({route['currency']})",
             template="plotly_dark"
         )
         st.plotly_chart(fig, use_container_width=True)
+
+        # Análise de Melhor Dia para Comprar (Feature 5)
+        weekday_data = best_weekday_analysis(snapshots)
+        if weekday_data:
+            st.subheader("📅 Melhor Dia para Pesquisar")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.success(f"🟢 **Melhor dia:** {weekday_data['best_day']}")
+                st.caption(f"Preços tendem a ser até {weekday_data['savings_pct']:.1f}% mais baratos do que no pior dia")
+            with col_b:
+                st.warning(f"🔴 **Pior dia:** {weekday_data['worst_day']}")
+                st.caption("Evite pesquisar/comprar nesse dia")
+            with st.expander("Ver média por dia da semana"):
+                day_df = pd.DataFrame(list(weekday_data["by_day"].items()), columns=["Dia", f"Média ({route['currency']})"])
+                day_df = day_df.sort_values(f"Média ({route['currency']})")
+                st.dataframe(day_df, use_container_width=True)
     else:
         st.info("Gráfico requer pelo menos 2 coletas para ser exibido.")
         

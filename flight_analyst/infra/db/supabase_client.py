@@ -334,6 +334,10 @@ class DatabaseClient:
     def using_supabase(self) -> bool:
         return self._is_supabase
 
+    def is_connected(self) -> bool:
+        """Retorna True se o cliente já está conectado a um backend."""
+        return self._backend is not None
+
     async def execute(self, table: str, operation: str, **kwargs: Any) -> Any:
         # Se o loop mudou (comum em Streamlit/Threads), reconectamos
         current_loop = asyncio.get_running_loop()
@@ -355,7 +359,7 @@ db = DatabaseClient()
 
 async def get_db() -> AsyncIterator[DatabaseClient]:
     """Context manager para uso em FastAPI (dependency injection)."""
-    if db._backend is None:
+    if not db.is_connected():
         await db.connect()
     try:
         yield db

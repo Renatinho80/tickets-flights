@@ -27,6 +27,7 @@ from flight_analyst.infra.scrapers.serpapi_scraper import SerpApiScraper
 from flight_analyst.infra.scrapers.amadeus_scraper import AmadeusScraper
 from flight_analyst.infra.scrapers.base import BaseScraper
 from flight_analyst.api.task_manager import task_manager, TaskStatus
+from flight_analyst.api.rate_limiter import limiter, RateLimitExceeded, _rate_limit_exceeded_handler
 
 log = structlog.get_logger(__name__)
 
@@ -58,6 +59,10 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Rate Limiting (Feature 3 — Anti-spam para endpoints de coleta)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS para permitir chamadas do Dashboard no Streamlit
 app.add_middleware(
@@ -219,6 +224,7 @@ async def delete_route(
 
 
 @app.post("/routes/{route_id}/collect", status_code=status.HTTP_202_ACCEPTED, dependencies=[Depends(verify_api_key)])
+@limiter.limit("10/minute")
 async def collect_route_prices(
     route_id: UUID,
     route_repo: RouteRepository = Depends(get_route_repo),
@@ -256,6 +262,7 @@ async def collect_route_prices(
 
 
 @app.post("/collect-all", status_code=status.HTTP_202_ACCEPTED, dependencies=[Depends(verify_api_key)])
+@limiter.limit("5/minute")
 async def collect_all_prices(
     route_repo: RouteRepository = Depends(get_route_repo),
 ) -> Any:
@@ -315,7 +322,7 @@ async def _run_background_collection(task_id: UUID, route: Route) -> None:
 
     try:
         # Garantir conexão com o banco (singleton db)
-        if not db._backend:
+        if not db.is_connected():
             await db.connect()
         route_repo = RouteRepository(db)
         snapshot_repo = SnapshotRepository(db)

@@ -14,6 +14,7 @@ dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "httpx>=0.26",
+    "requests>=2.31",
     "pyyaml>=6.0",
     "structlog>=24.0",
     "python-dotenv>=1.0",
@@ -23,70 +24,33 @@ dependencies = [
     "tenacity>=8.2",
     "nest_asyncio>=1.6",
     "airportsdata>=20240101",
-]
-
-[project.optional-dependencies]
-# Fase 1 — coleta e armazenamento
-phase1 = [
+    "pandas>=2.0",
+    "plotly>=5.20",
+    "streamlit>=1.32",
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.29",
+    "slowapi>=0.1.9",
+    "google-generativeai>=0.5",
+    "inngest>=0.3",
+    "python-telegram-bot>=20.0",
     "postgrest>=0.16.0",
     "aiosqlite>=0.19",
     "playwright>=1.40",
     "playwright-stealth>=1.0",
-]
-
-# Fase 2 — motor de inteligência
-phase2 = [
-    "fastapi>=0.111",
-    "uvicorn[standard]>=0.29",
-    "pandas>=2.0",
     "statsmodels>=0.14",
     "numpy>=1.26",
     "scipy>=1.12",
-    "google-generativeai>=0.5",
-]
-
-# Fase 3 — scheduler e notificações
-phase3 = [
-    "inngest>=0.3",
-    "python-telegram-bot>=20.0",
     "apscheduler>=3.10",
-]
-
-# Fase 4 — dashboard
-phase4 = [
-    "streamlit>=1.32",
-    "plotly>=5.20",
     "altair>=5.0",
 ]
 
-# Dev — tooling e testes
+[project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-cov>=4.0",
     "mypy>=1.8",
     "ruff>=0.3",
-]
-
-# Tudo junto (para deploy completo)
-all = [
-    "postgrest>=0.16.0",
-    "aiosqlite>=0.19",
-    "playwright>=1.40",
-    "playwright-stealth>=1.0",
-    "fastapi>=0.111",
-    "uvicorn[standard]>=0.29",
-    "pandas>=2.0",
-    "statsmodels>=0.14",
-    "numpy>=1.26",
-    "scipy>=1.12",
-    "google-generativeai>=0.5",
-    "inngest>=0.3",
-    "python-telegram-bot>=20.0",
-    "apscheduler>=3.10",
-    "streamlit>=1.32",
-    "plotly>=5.20",
-    "altair>=5.0",
 ]
 
 [project.scripts]

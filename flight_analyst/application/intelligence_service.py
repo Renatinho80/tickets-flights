@@ -88,10 +88,12 @@ class IntelligenceService:
             log.warning("intelligence_no_data", route=route.label)
             return None
 
-        # Converter para DataFrame para facilitar análise estatística
-        df = pd.DataFrame([s.model_dump() for s in snapshots])
-        df["price"] = df["price"].astype(float)
-        df["scraped_at"] = pd.to_datetime(df["scraped_at"])
+        # Converter para DataFrame — extraímos apenas os campos necessários para a análise
+        # (otimização de performance: evita serializar todo o modelo Pydantic)
+        df = pd.DataFrame([
+            {"price": float(s.price), "scraped_at": s.scraped_at}
+            for s in snapshots
+        ])
         df = df.sort_values("scraped_at")
 
         current_snapshot = snapshots[-1]
@@ -111,11 +113,6 @@ class IntelligenceService:
             z_score = (current_price - price_avg_recent) / price_std_recent
             if z_score < -2.5:
                 is_error_fare = True
-                
-        # Proteção extra: se for um voo internacional e custar muito pouco
-        # Obs: valores de referência em BRL (Real Brasileiro)
-        if route.currency.value == "BRL" and current_price < 800 and route.origin[:2] != route.destination[:2]:
-            is_error_fare = True
 
         trend_slope = self._calculate_trend_slope(df)
         

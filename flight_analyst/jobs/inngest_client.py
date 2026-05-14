@@ -26,7 +26,7 @@ async def poll_prices_cron(ctx: inngest.Context) -> dict[str, str]:
     """Rotina principal acionada pelo Inngest (Serverless)."""
     log.info("inngest_poll_prices_started", run_id=ctx.run_id)
     from flight_analyst.infra.db.supabase_client import db
-    if not db._backend:
+    if not db.is_connected():
         await db.connect()
         
     await poll_prices_routine(db)

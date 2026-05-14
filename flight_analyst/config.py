@@ -8,7 +8,9 @@ from enum import Enum
 from pathlib import Path
 
 from pydantic import Field, field_validator
+from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Any
 
 
 class AppEnv(str, Enum):
@@ -78,6 +80,28 @@ class Settings(BaseSettings):
     @classmethod
     def warn_if_empty(cls, v: str) -> str:
         return v or ""
+
+    @field_validator("app_api_key", mode="after")
+    @classmethod
+    def validate_api_key_in_production(cls, v: str, info: Any) -> str:
+        app_env = info.data.get("app_env")
+        if app_env == AppEnv.PRODUCTION and v == "dev_secret_key":
+            raise ValueError(
+                "APP_API_KEY não pode ser o valor padrão 'dev_secret_key' em produção. "
+                "Defina uma chave segura no .env ou nas variáveis de ambiente do Render."
+            )
+        return v
+
+    @field_validator("dashboard_password", mode="after")
+    @classmethod
+    def validate_dashboard_password_in_production(cls, v: str, info: Any) -> str:
+        app_env = info.data.get("app_env")
+        if app_env == AppEnv.PRODUCTION and v == "dev_password":
+            raise ValueError(
+                "DASHBOARD_PASSWORD não pode ser o valor padrão 'dev_password' em produção. "
+                "Defina uma senha segura no .env ou nas variáveis de ambiente."
+            )
+        return v
 
     @property
     def is_production(self) -> bool:
