@@ -122,7 +122,12 @@ class AskRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @app.get("/health")
-async def health_check() -> dict[str, str]:
+async def health_check():
+    """Endpoint para monitoramento de saúde da API (Render/Railway)."""
+    return {"status": "healthy"}
+
+@app.get("/")
+async def root() -> dict[str, str]:
     return {"status": "ok", "environment": settings.app_env.value}
 
 
