@@ -14,10 +14,15 @@ O projeto segue uma arquitetura desacoplada e moderna: **Frontend (Streamlit) �
 
 ### 2. Iniciando os Serviços (Ordem Recomendada)
 
+**Atenção:** Certifique-se de executar os comandos abaixo **dentro do seu ambiente virtual** (ex: ativando o `.venv` ou usando `.venv/Scripts/python` no Windows).
+
 #### **Passo A: Iniciar a API (Backend)**
 A API centraliza toda a lógica de negócio, scrapers e acesso ao banco.
 ```bash
+# Se o .venv estiver ativado:
 python -m flight_analyst.main api
+# Ou no Windows diretamente:
+# .\.venv\Scripts\python -m flight_analyst.main api
 ```
 *A API rodará em http://127.0.0.1:8000*
 

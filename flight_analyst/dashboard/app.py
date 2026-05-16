@@ -3,6 +3,11 @@ Dashboard interativo usando Streamlit e Plotly.
 Permite visualizar rotas, histórico de preços e recomendações do motor de IA.
 """
 
+import sys
+import os
+# Adiciona o diretório raiz do projeto ao sys.path para permitir imports do pacote flight_analyst
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
+
 import asyncio
 from datetime import datetime, date
 from uuid import UUID
