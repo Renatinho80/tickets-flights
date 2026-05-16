@@ -3,10 +3,11 @@ Módulo Ask — Integração com Google Gemini para responder a perguntas em lin
 Fornece contexto de mercado (estatísticas e recomendações) como base para a IA.
 """
 
+import json
 from decimal import Decimal
 from typing import Any
 
-import google.generativeai as genai
+from google import genai
 import structlog
 from pydantic import BaseModel
 
@@ -17,14 +18,13 @@ from flight_analyst.application.ai_tools import AVAILABLE_TOOLS
 log = structlog.get_logger(__name__)
 
 
-
 class AskResponse(BaseModel):
     """Resposta estruturada e limpa do motor de IA."""
     verdict: str  # Comprar, Esperar, Alerta
     analysis: str # Breve explicação técnica
     recommendation: str # Sugestão final
     tokens_used: int = 0
-    model: str = "gemini-2.5-flash"
+    model: str = "gemini-1.5-flash"
 
 
 class AskService:
@@ -35,11 +35,14 @@ class AskService:
 
     def __init__(self) -> None:
         self._is_ready = False
+        self._client = None
         if settings.has_gemini:
-            genai.configure(api_key=settings.google_api_key)
-            # Usando o modelo estável mais recente
-            self._model = genai.GenerativeModel("gemini-2.5-flash")
-            self._is_ready = True
+            try:
+                self._client = genai.Client(api_key=settings.google_api_key)
+                self._model_name = "gemini-1.5-flash"
+                self._is_ready = True
+            except Exception as e:
+                log.error("gemini_init_error", error=str(e))
         else:
             log.warning("gemini_not_configured", reason="GOOGLE_API_KEY ausente")
 
@@ -55,8 +58,6 @@ class AskService:
         """
         Monta as instruções base para a IA.
         """
-        import json
-        
         context: dict[str, Any] = {
             "route_info": {
                 "id": str(route.id),
@@ -100,9 +101,7 @@ DADOS DA ROTA (Use este ID para as ferramentas):
         Envia uma pergunta ao Gemini contextualizada com os dados do voo.
         A IA usará as ferramentas (tools) para buscar o histórico de preços.
         """
-        import json
-        
-        if not self._is_ready:
+        if not self._is_ready or not self._client:
             return AskResponse(
                 verdict="Erro",
                 analysis="Módulo Ask desativado",
@@ -113,22 +112,20 @@ DADOS DA ROTA (Use este ID para as ferramentas):
         system_instruction = self._build_context(route, recommendation)
         
         try:
-            model = genai.GenerativeModel(
-                model_name="gemini-2.5-flash",
-                system_instruction=system_instruction,
-                tools=AVAILABLE_TOOLS
+            # No novo SDK, ferramentas e instruções de sistema são passadas no config
+            # O SDK gerencia automaticamente as chamadas de função (automatic function calling)
+            response = await self._client.aio.models.generate_content(
+                model=self._model_name,
+                contents=question,
+                config={
+                    'system_instruction': system_instruction,
+                    'tools': AVAILABLE_TOOLS,
+                    'automatic_function_calling': {'disable': False}
+                }
             )
             
-            # Usamos o start_chat para permitir a comunicação multi-turn do Function Calling
-            chat = model.start_chat(enable_automatic_function_calling=True)
-            
-            # Avisamos ao modelo que queremos o resultado final em JSON
-            response = await chat.send_message_async(
-                question,
-            )
-            
-            # Remove blocos markdown caso a IA os coloque
             raw_text = response.text.strip()
+            # Remove blocos markdown caso a IA os coloque
             if raw_text.startswith("```json"):
                 raw_text = raw_text[7:]
             if raw_text.endswith("```"):
@@ -145,10 +142,12 @@ DADOS DA ROTA (Use este ID para as ferramentas):
                     "recommendation": response.text
                 }
             
+            tokens = 0
             try:
-                tokens = response.usage_metadata.total_token_count
+                if response.usage_metadata:
+                    tokens = response.usage_metadata.total_token_count
             except Exception:
-                tokens = 0
+                pass
                 
             log.info("gemini_asked", route=route.label, tokens=tokens)
             
@@ -157,7 +156,7 @@ DADOS DA ROTA (Use este ID para as ferramentas):
                 analysis=data.get("analysis", ""),
                 recommendation=data.get("recommendation", ""),
                 tokens_used=tokens,
-                model="gemini-2.5-flash",
+                model=self._model_name,
             )
             
         except Exception as exc:

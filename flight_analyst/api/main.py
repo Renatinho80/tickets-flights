@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 from uuid import UUID
 
-from fastapi import FastAPI, Depends, HTTPException, status, Response
+from fastapi import FastAPI, Depends, HTTPException, status, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
@@ -227,6 +227,7 @@ async def delete_route(
 @limiter.limit("10/minute")
 async def collect_route_prices(
     route_id: UUID,
+    request: Request,
     route_repo: RouteRepository = Depends(get_route_repo),
 ) -> Any:
     """
@@ -264,6 +265,7 @@ async def collect_route_prices(
 @app.post("/collect-all", status_code=status.HTTP_202_ACCEPTED, dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")
 async def collect_all_prices(
+    request: Request,
     route_repo: RouteRepository = Depends(get_route_repo),
 ) -> Any:
     """
