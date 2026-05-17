@@ -1,0 +1,12 @@
+[server]
+# Configurações para estabilizar o WebSocket e evitar desconexões por inatividade
+websocketPingInterval = 20
+disconnectedSessionTTL = 300
+
+# Evita problemas de CORS/XSRF comuns quando o app roda atrás de proxies ou portas customizadas
+enableCORS = false
+enableXsrfProtection = false
+
+[browser]
+# Desativa a telemetria do Streamlit que às vezes gera pequenos gargalos de conexão
+gatherUsageStats = false
